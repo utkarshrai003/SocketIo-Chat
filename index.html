@@ -10,22 +10,85 @@
 
   <body>
     <div class="chat">
+      <!--  User Name Here -->
       <input type="text" class="chat-name" placeholder="Enter Your name" />
+      <!--  Chat Messages -->
       <div class="chat-messages">
+        <!--  Single Message Block -->
         <div class="chat-message">
-          Alex: Helo
         </div>
       </div>
       <div>
-        <textarea class="chat-textarea" laceholder="Type your Message">
-        </textarea>
+        <!--  Type Message Here -->
+        <textarea class="chat-textarea" placeholder="Type your Message"></textarea>
         <div class="chat-status">
-          Status: <span>Idle</span>
+          Status: <span id = "status">Idle</span>
         </div>
       </div>
     </div>
 
-    <script src="http://127.0.0.1:8080/socket.io/socket.io.js">      
+    <script src="http://127.0.0.1:8080/socket.io/socket.io.js"></script>
+    <script>
+
+      (function() {
+        // Method to get the requested element by some identifier
+        var getNode = (identifier) => {
+          return document.querySelector(identifier);
+        }
+
+        // Get Required Nodes
+        var textarea = getNode('.chat-textarea');
+        var chatName = getNode('.chat-name');
+        var messages = getNode('.chat-messages');
+        var status = getNode('#status');
+
+        try {
+          var socket = io.connect('http://127.0.0.1:8080');
+          status.textContent = "Connection established..Go on";
+        } catch(e) {
+          // Set status about socket connection unavailable
+          status.textContent = "Problem with connecting to server";
+        }
+
+        if(socket !== undefined) {
+          // Output Event Brodcasts messages
+          socket.on('output', (data) => {
+            if(data.length) {
+              // loop through the results
+              for(var x = 0; x < data.length; x++) {
+                var message = document.createElement('div');
+
+                message.setAttribute('class', 'chat-message');
+                message.textContent = data[x].name + ": " + data[x].message;
+
+                // Append
+                messages.appendChild(message);
+                messages.insertBefore(message, messages.firstChild);
+              }
+            }
+          });
+          // listen for key down
+          textarea.addEventListener('keydown', (event) => {
+            var name = chatName.value;
+            var message = textarea.value;
+            // If enter is pressed without shift
+            if(event.which === 13 && event.shiftKey === false) {
+              // And both name and messages are present
+              if(name && message) {
+                socket.emit('input', {
+                  name: name,
+                  message: message
+                });
+                textarea.value = "";
+              }
+              else {
+                alert("Enter name and message both");
+              }
+              event.preventDefault();
+            }
+          });
+        }
+      })();
     </script>
   </body>
 </html>
